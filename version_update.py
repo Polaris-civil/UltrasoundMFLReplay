@@ -21,7 +21,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 
 
 # Date-based release version with a numeric patch suffix for rebuilds.
-APP_VERSION = "2026.09.30.1"
+APP_VERSION = "2026.09.30.2"
 DEFAULT_GITHUB_REPOSITORY = "Polaris-civil/UltrasoundMFLReplay"
 UPDATE_ASSET_NAME = "UltrasoundMFLReplay-windows-x64.zip"
 GITHUB_API_VERSION = "2022-11-28"
@@ -279,6 +279,7 @@ function Quote-WindowsArgument([string]$Value) {
 }
 
 try {
+    Add-Content -LiteralPath $logPath -Value ("更新安装程序启动：" + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')) -Encoding UTF8
     $payloadJson = [System.Text.Encoding]::UTF8.GetString(
         [System.Convert]::FromBase64String($EncodedPayload)
     )
@@ -286,6 +287,7 @@ try {
     $appDir = [System.IO.Path]::GetFullPath([string]$payload.app_dir)
     $exePath = Join-Path $appDir 'UltrasoundMFLReplay.exe'
     $archivePath = [System.IO.Path]::GetFullPath([string]$payload.archive)
+    Add-Content -LiteralPath $logPath -Value ("等待程序退出：" + $exePath) -Encoding UTF8
 
     $deadline = (Get-Date).AddSeconds(120)
     while ((Get-Date) -lt $deadline) {
@@ -301,6 +303,7 @@ try {
     $backup = Join-Path $appDir ('.update-backup-' + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $stage | Out-Null
     Expand-Archive -LiteralPath $archivePath -DestinationPath $stage -Force
+    Add-Content -LiteralPath $logPath -Value '更新包已解压，开始替换程序文件。' -Encoding UTF8
     $newExe = Join-Path $stage 'UltrasoundMFLReplay.exe'
     $newInternal = Join-Path $stage '_internal'
     if (-not (Test-Path -LiteralPath $newExe -PathType Leaf) -or
@@ -338,6 +341,7 @@ try {
         })
         $psi.Arguments = [string]::Join(' ', [string[]]$quotedArguments)
         [void][System.Diagnostics.Process]::Start($psi)
+        Add-Content -LiteralPath $logPath -Value '程序文件已替换，已启动新版程序。' -Encoding UTF8
     } catch {
         if ($installedExe -and (Test-Path -LiteralPath $exePath)) {
             Remove-Item -LiteralPath $exePath -Force
@@ -416,30 +420,39 @@ def start_windows_update_installer(archive_path: Path) -> None:
     startup_info = subprocess.STARTUPINFO()
     startup_info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     startup_info.wShowWindow = 0
-    creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+    # DETACHED_PROCESS caused Windows PowerShell to exit without running the
+    # -File script on some systems. The hidden window and a new process group
+    # keep the helper out of the user's way while it waits for this app to exit.
+    creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP
+    log_path = Path(tempfile.gettempdir()) / "UltrasoundMFLReplay-update.log"
     try:
-        subprocess.Popen(
-            [
-                "powershell.exe",
-                "-NoLogo",
-                "-NoProfile",
-                "-NonInteractive",
-                "-WindowStyle",
-                "Hidden",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                str(script_path),
-                encoded_payload,
-            ],
-            cwd=str(executable.parent),
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            startupinfo=startup_info,
-            creationflags=creation_flags,
-            close_fds=True,
-        )
+        with log_path.open("a", encoding="utf-8") as log_stream:
+            log_stream.write("正在启动 Windows 更新安装程序。\n")
+            log_stream.flush()
+            subprocess.Popen(
+                [
+                    "powershell.exe",
+                    "-NoLogo",
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-WindowStyle",
+                    "Hidden",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    str(script_path),
+                    encoded_payload,
+                ],
+                cwd=str(executable.parent),
+                stdin=subprocess.DEVNULL,
+                stdout=log_stream,
+                stderr=log_stream,
+                startupinfo=startup_info,
+                creationflags=creation_flags,
+                close_fds=True,
+            )
     except OSError as exc:
         script_path.unlink(missing_ok=True)
-        raise UpdateError(f"无法启动更新安装程序：{exc}") from exc
+        raise UpdateError(
+            f"无法启动更新安装程序：{exc}\n安装日志：{log_path}"
+        ) from exc
