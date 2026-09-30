@@ -20,9 +20,8 @@ from urllib.parse import urlparse
 from PyQt5.QtCore import QThread, pyqtSignal
 
 
-# First updater-enabled build, using the date-based version format already used
-# by the distribution notes. Bump this before building each later Release.
-APP_VERSION = "2026.09.30"
+# Date-based release version with a numeric patch suffix for rebuilds.
+APP_VERSION = "2026.09.30.1"
 DEFAULT_GITHUB_REPOSITORY = "Polaris-civil/UltrasoundMFLReplay"
 UPDATE_ASSET_NAME = "UltrasoundMFLReplay-windows-x64.zip"
 GITHUB_API_VERSION = "2022-11-28"

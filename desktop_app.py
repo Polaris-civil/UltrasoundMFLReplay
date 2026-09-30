@@ -3311,9 +3311,11 @@ class ReplayWindow(QMainWindow):
         self.update_check_button.setEnabled(True)
         self.update_save_repository_button.setEnabled(True)
         self.latest_release = dict(release)
+        checked_at = time.strftime("%H:%M:%S")
         if not release.get("update_available"):
             self.update_status_label.setText(
-                f"当前已是最新版本（GitHub：{release.get('tag', '未知')}）。"
+                f"{checked_at} 检查完成：当前已是最新版本"
+                f"（GitHub：{release.get('tag', '未知')}）。"
             )
             QMessageBox.information(
                 self,
@@ -3333,7 +3335,8 @@ class ReplayWindow(QMainWindow):
         )
         if not getattr(sys, "frozen", False) or sys.platform != "win32":
             self.update_status_label.setText(
-                f"发现新版本 {tag}；当前运行方式不支持自动替换程序文件。"
+                f"{checked_at} 检查完成：发现新版本 {tag}；"
+                "当前运行方式不支持自动替换程序文件。"
             )
             release_url = str(release.get("html_url") or "")
             if release_url:
@@ -3349,14 +3352,17 @@ class ReplayWindow(QMainWindow):
             QMessageBox.Yes,
         )
         if answer != QMessageBox.Yes:
-            self.update_status_label.setText(f"已发现新版本 {tag}，暂未更新。")
+            self.update_status_label.setText(
+                f"{checked_at} 已发现新版本 {tag}，暂未更新。"
+            )
             return
         self.start_update_download(release)
 
     def on_update_check_failed(self, message: str) -> None:
         self.update_check_button.setEnabled(True)
         self.update_save_repository_button.setEnabled(True)
-        self.update_status_label.setText(message)
+        checked_at = time.strftime("%H:%M:%S")
+        self.update_status_label.setText(f"{checked_at} {message}")
         QMessageBox.warning(self, "检查更新失败", message)
 
     def start_update_download(self, release: dict[str, Any]) -> None:
