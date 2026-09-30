@@ -1,0 +1,171 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>超声—漏磁同步回放</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-mark" aria-hidden="true">
+        <span>US</span><i>/</i><span>MFL</span>
+      </div>
+      <div class="title-block">
+        <p class="eyebrow">SYNCHRONIZED DATA REPLAY</p>
+        <h1>超声—漏磁同步回放</h1>
+        <p class="subtitle">以接头为零点，共享同一条相对距离横轴；超声在上，漏磁在下。</p>
+      </div>
+      <div class="health-panel">
+        <span id="healthDot" class="health-dot loading"></span>
+        <div>
+          <strong id="healthText">正在连接数据服务</strong>
+          <small id="healthDetail">读取数据清单…</small>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="control-card">
+        <div class="control-row primary-controls">
+          <button id="playButton" class="button button-accent" type="button">▶ 开始回放</button>
+          <button id="jointButton" class="button" type="button">接头居中</button>
+          <button id="homeButton" class="button button-icon" type="button" title="跳到数据起点">|◀</button>
+          <button id="endButton" class="button button-icon" type="button" title="跳到数据终点">▶|</button>
+
+          <label class="compact-control">
+            <span>窗口</span>
+            <select id="windowSelect">
+              <option value="5">5 m</option>
+              <option value="8" selected>8 m</option>
+              <option value="10">10 m</option>
+              <option value="20">20 m</option>
+              <option value="50">50 m</option>
+              <option value="100">100 m</option>
+            </select>
+          </label>
+
+          <label class="compact-control">
+            <span>速度</span>
+            <select id="speedSelect">
+              <option value="1">1 m/s</option>
+              <option value="2">2 m/s</option>
+              <option value="5" selected>5 m/s</option>
+              <option value="10">10 m/s</option>
+              <option value="20">20 m/s</option>
+            </select>
+          </label>
+
+          <label class="start-control">
+            <span>起点 / m</span>
+            <input id="startInput" type="number" step="0.01" value="0">
+          </label>
+          <button id="jumpButton" class="button" type="button">跳转</button>
+        </div>
+
+        <div class="control-row filter-controls">
+          <div class="filter-group">
+            <span class="filter-label">超声 Track</span>
+            <label class="check-pill track-pill track-0">
+              <input type="checkbox" data-track="0" checked>
+              <span>Track 0</span>
+            </label>
+            <label class="check-pill track-pill track-1">
+              <input type="checkbox" data-track="1" checked>
+              <span>Track 1</span>
+            </label>
+          </div>
+          <div class="filter-group gate-group">
+            <span class="filter-label">Gate</span>
+            <div id="gateFilters" class="gate-filters">
+              <span class="muted-inline">读取中…</span>
+            </div>
+            <button id="selectAllGatesButton" class="text-button" type="button">全选</button>
+            <button id="clearGatesButton" class="text-button" type="button">清空</button>
+          </div>
+        </div>
+
+        <div class="timeline-block">
+          <input id="timeline" type="range" min="0" max="1" step="0.01" value="0" aria-label="回放位置">
+          <div class="timeline-meta">
+            <span id="rangeLabel">范围：—</span>
+            <span id="cursorLabel">光标：—</span>
+            <span id="loadLabel">窗口：等待加载</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="data-panel ultrasound-panel">
+        <div class="panel-heading">
+          <div>
+            <div class="panel-kicker"><span class="panel-index">01</span> TOP / ULTRASOUND</div>
+            <h2>超声回波事件</h2>
+          </div>
+          <div class="panel-summary">
+            <span class="legend-dot us-track-0"></span><span>Track 0</span>
+            <span class="legend-dot us-track-1"></span><span>Track 1</span>
+            <span class="legend-dot us-gate"></span><span>颜色区分 Gate</span>
+          </div>
+        </div>
+        <div class="chart-frame ultrasound-frame">
+          <canvas id="usCanvas"></canvas>
+          <div id="usEmpty" class="empty-overlay hidden">当前窗口没有符合筛选条件的超声事件</div>
+        </div>
+        <div class="axis-note">
+          <span>纵轴：Depth × 176 / 127（mm，向下为深度）</span>
+          <span>横轴：接头相对距离（m）</span>
+          <span id="usCountLabel">事件：—</span>
+        </div>
+      </section>
+
+      <section class="data-panel mfl-panel">
+        <div class="panel-heading">
+          <div>
+            <div class="panel-kicker"><span class="panel-index">02</span> BOTTOM / MAGNETIC FLUX LEAKAGE</div>
+            <h2>漏磁 16 行 × 2 分量</h2>
+          </div>
+          <div class="panel-summary">
+            <span class="line-key line-x"></span><span>X</span>
+            <span class="line-key line-z"></span><span>Z</span>
+            <span class="muted-inline">左 1–8 / 右 1–8</span>
+          </div>
+        </div>
+        <div class="chart-frame mfl-frame">
+          <canvas id="mflCanvas"></canvas>
+          <div id="mflEmpty" class="empty-overlay hidden">当前窗口没有可用的漏磁数据</div>
+        </div>
+        <div class="axis-note">
+          <span>纵轴：DAT.value / 1000（通道值）</span>
+          <span>每个 EX 段独立绘制，段间不连线</span>
+          <span id="mflCountLabel">原始记录：—</span>
+        </div>
+      </section>
+
+      <section class="info-grid">
+        <article class="info-card">
+          <span class="info-label">同步坐标</span>
+          <strong id="coordinateInfo">—</strong>
+          <p id="jointInfo">接头锚点：—</p>
+        </article>
+        <article class="info-card">
+          <span class="info-label">数据覆盖</span>
+          <strong id="coverageInfo">—</strong>
+          <p id="sourceInfo">—</p>
+        </article>
+        <article class="info-card warning-card">
+          <span class="info-label">数据说明</span>
+          <p id="warningInfo">—</p>
+        </article>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>本地回放服务 · Canvas 渲染 · 按窗口读取 memmap / bin 数据</span>
+      <span id="serverInfo">—</span>
+    </footer>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,9 @@
+﻿__pycache__/
+*.py[cod]
+.venv/
+venv/
+build/
+dist/
+release-assets/
+update_settings.json
+*.spec.bak

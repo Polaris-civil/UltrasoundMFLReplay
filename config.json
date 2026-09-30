@@ -1,0 +1,33 @@
+{
+  "dataset": "20251221",
+  "mfl_data_dir": "../分发软件版本/data/20251221/漏磁",
+  "annotation_dir": "../分发软件版本/annotations",
+  "model_result_path": "../分发软件版本/model_results/candidate_events.csv",
+  "model_result_segment": "EX01",
+  "ultrasound_data_dir": "../分发软件版本/data/20251221/超声/data",
+  "scale_mm_per_unit": 0.57462,
+  "direction_sign": 1,
+  "joint": {
+    "status": "working_anchor",
+    "mfl_segment": "EX01",
+    "mfl_record_pos": 584064,
+    "mfl_raw_index": 230378,
+    "us_id": 2794006
+  },
+  "alignment": {
+    "ultrasound_offset_m": -0.315
+  },
+  "mfl_segment_gaps_m": {
+    "EX01": 0.0,
+    "EX02": 0.0,
+    "EX03": 0.0,
+    "EX04": 0.0
+  },
+  "render": {
+    "default_window_m": 8.0,
+    "max_mfl_points_per_segment": 3600,
+    "max_ultrasound_records": 120000,
+    "mfl_value_scale": 1000.0,
+    "ultrasound_depth_scale": "Depth * 176 / 127"
+  }
+}
