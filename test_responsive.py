@@ -31,7 +31,7 @@ with tempfile.TemporaryDirectory() as folder:
                 assert button.height()>=button.sizeHint().height(),button.text()
             assert win.us_plot.width()>=280 and win.mfl_plot.width()>=280
     win.resize(800,600);win.set_tool_page(1);app.processEvents()
-    output=Path(__file__).resolve().parents[1]/'outputs/responsive_test'
+    output=Path(__file__).resolve().parent/'outputs/responsive_test'
     output.mkdir(parents=True,exist_ok=True)
     win.grab().save(str(output/f"800x600_scale_{os.environ.get('QT_SCALE_FACTOR','1')}.png"))
     win.close()

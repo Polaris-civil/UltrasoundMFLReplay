@@ -1,10 +1,10 @@
 {
   "dataset": "20251221",
-  "mfl_data_dir": "../分发软件版本/data/20251221/漏磁",
-  "annotation_dir": "../分发软件版本/annotations",
-  "model_result_path": "../分发软件版本/model_results/candidate_events.csv",
+  "mfl_data_dir": "分发软件版本/data/20251221/漏磁",
+  "annotation_dir": "分发软件版本/annotations",
+  "model_result_path": "分发软件版本/model_results/crack_coherence_preview_v3.csv",
   "model_result_segment": "EX01",
-  "ultrasound_data_dir": "../分发软件版本/data/20251221/超声/data",
+  "ultrasound_data_dir": "分发软件版本/data/20251221/超声/data",
   "scale_mm_per_unit": 0.57462,
   "direction_sign": 1,
   "joint": {

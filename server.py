@@ -1819,13 +1819,13 @@ class ReplayService:
 
         mfl_path = resolve_path(
             self.config.get(
-                "mfl_data_dir", "../分发软件版本/data/20251221/漏磁"
+                "mfl_data_dir", "分发软件版本/data/20251221/漏磁"
             ),
             config_path.parent,
         )
         us_path_value = self.config.get(
             "ultrasound_data_dir",
-            "../分发软件版本/data/20251221/超声/data",
+            "分发软件版本/data/20251221/超声/data",
         )
         us_path = resolve_path(us_path_value, config_path.parent)
         us_csv_path_value = self.config.get("ultrasound_csv_dir")

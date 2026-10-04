@@ -156,13 +156,13 @@ class AnnotationStore:
         )
         self.dataset = str(self.config.get("dataset", "20251221"))
         annotation_dir = self.config.get(
-            "annotation_dir", "../分发软件版本/annotations"
+            "annotation_dir", "分发软件版本/annotations"
         )
         self.root_dir = _resolve_path(annotation_dir, self.config_path.parent)
         self.dataset_dir = self.root_dir / self.dataset
         self.mfl_data_dir = _resolve_path(
             self.config.get(
-                "mfl_data_dir", "../分发软件版本/data/20251221/漏磁"
+                "mfl_data_dir", "分发软件版本/data/20251221/漏磁"
             ),
             self.config_path.parent,
         )

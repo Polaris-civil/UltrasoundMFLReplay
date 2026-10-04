@@ -1,9 +1,13 @@
-﻿__pycache__/
+__pycache__/
 *.py[cod]
-.venv/
-venv/
 build/
 dist/
+archive/
+outputs/
+分发软件版本/
 release-assets/
 update_settings.json
-*.spec.bak
+.venv/
+.release-repo/
+migration_manifest.json
+migration_report.md

@@ -126,7 +126,7 @@ def main():
             window.grab().save(sys.argv[1])
         window.close()
         if "--exe-check" in sys.argv:
-            distribution = Path(__file__).resolve().parents[1] / "分发软件版本"
+            distribution = Path(__file__).resolve().parent / "分发软件版本"
             settings = json.loads(config.read_text())
             settings["ultrasound_data_dir"] = str(distribution / "data/20251221/超声/data")
             settings["joint"] = {"mfl_segment": "EX01", "mfl_record_pos": 0, "mfl_raw_index": 0, "us_id": 2794006}

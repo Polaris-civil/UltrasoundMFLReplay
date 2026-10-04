@@ -6,8 +6,16 @@ import shutil
 import subprocess
 import tempfile
 
-ROOT=Path(__file__).resolve().parents[1]
-package=ROOT/'0917软件'
+ROOT=Path(__file__).resolve().parent
+package=ROOT/'outputs/portable-test-package'
+package.parent.mkdir(parents=True,exist_ok=True)
+if not package.exists():
+    shutil.copytree(ROOT/'dist/UltrasoundMFLReplay',package)
+for config_path in [package/'config.json',package/'_internal/config.json']:
+    if config_path.exists():
+        settings=json.loads(config_path.read_text(encoding='utf-8'))
+        settings.update(mfl_data_dir='data/mfl',ultrasound_data_dir='data/ultrasound',ultrasound_csv_dir='data/csv',annotation_dir='annotations',model_result_path='')
+        config_path.write_text(json.dumps(settings),encoding='utf-8')
 assert (package/'UltrasoundMFLReplay.exe').is_file()
 for config in [package/'config.json',package/'_internal/config.json']:
     c=json.loads(config.read_text(encoding='utf-8'))

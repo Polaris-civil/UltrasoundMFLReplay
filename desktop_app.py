@@ -1996,6 +1996,7 @@ class ReplayWindow(QMainWindow):
         self.play_timer.setInterval(40)
         self.play_timer.timeout.connect(self.play_tick)
         self._navigation_shortcuts: list[QShortcut] = []
+        self._annotation_shortcuts: list[QShortcut] = []
 
         self.setWindowTitle(f"超声 · 漏磁同步回放  |  {self.dataset_name}")
         self.resize(1280, 900)
@@ -2037,6 +2038,29 @@ class ReplayWindow(QMainWindow):
                     lambda delta=delta: self._handle_navigation_shortcut(delta)
                 )
             self._navigation_shortcuts.append(shortcut)
+
+        # Annotation shortcuts are application-local so they also work after
+        # the mouse is released on the plot or while the annotation controls
+        # have focus.  The order follows ANNOTATION_LABELS, which is also the
+        # order used by the annotation type combo box.
+        for number, (code, name) in enumerate(ANNOTATION_LABELS.items(), 1):
+            shortcut = QShortcut(QKeySequence(str(number)), self)
+            shortcut.setContext(Qt.ApplicationShortcut)
+            shortcut.setWhatsThis(f"选择异常类型：{number} - {name}")
+            shortcut.activated.connect(
+                lambda code=code, number=number: self.select_annotation_label_shortcut(
+                    code,
+                    number,
+                )
+            )
+            self._annotation_shortcuts.append(shortcut)
+
+        for key in (Qt.Key_Return, Qt.Key_Enter):
+            shortcut = QShortcut(QKeySequence(key), self)
+            shortcut.setContext(Qt.ApplicationShortcut)
+            shortcut.setWhatsThis("保存当前异常标注")
+            shortcut.activated.connect(self.save_annotation_shortcut)
+            self._annotation_shortcuts.append(shortcut)
 
     def _handle_navigation_shortcut(
         self,
@@ -2692,9 +2716,17 @@ class ReplayWindow(QMainWindow):
 
         annotation_layout.addWidget(QLabel("异常类型"), 1, 0)
         self.annotation_label_combo = QComboBox()
-        for code, name in ANNOTATION_LABELS.items():
-            self.annotation_label_combo.addItem(name, code)
+        for number, (code, name) in enumerate(ANNOTATION_LABELS.items(), 1):
+            self.annotation_label_combo.addItem(f"{number} · {name}", code)
         self.annotation_label_combo.setEnabled(False)
+        self.annotation_label_combo.setToolTip(
+            "可用数字键快速选择："
+            + "；".join(
+                f"{number}={name}"
+                for number, name in enumerate(ANNOTATION_LABELS.values(), 1)
+            )
+            + "。按 Enter 保存。"
+        )
         annotation_layout.addWidget(self.annotation_label_combo, 1, 1, 1, 2)
 
         annotation_layout.addWidget(QLabel("标注范围"), 2, 0)
@@ -2717,6 +2749,18 @@ class ReplayWindow(QMainWindow):
         self.annotation_selection_label.setObjectName("InfoLabel")
         self.annotation_selection_label.setWordWrap(True)
         annotation_layout.addWidget(self.annotation_selection_label, 4, 0, 1, 3)
+
+        self.annotation_shortcut_hint = QLabel(
+            "快捷键："
+            + " · ".join(
+                f"{number} {name}"
+                for number, name in enumerate(ANNOTATION_LABELS.values(), 1)
+            )
+            + " · Enter 保存"
+        )
+        self.annotation_shortcut_hint.setObjectName("InfoLabel")
+        self.annotation_shortcut_hint.setWordWrap(True)
+        annotation_layout.addWidget(self.annotation_shortcut_hint, 7, 0, 1, 3)
 
         self.annotation_save_button = QPushButton("保存异常标注")
         self.annotation_save_button.setObjectName("PrimaryButton")
@@ -4294,6 +4338,34 @@ class ReplayWindow(QMainWindow):
                     "可继续回放；支持五种异常类型。"
                 )
         self.mfl_plot.update()
+
+    def _annotation_shortcut_ready(self) -> bool:
+        """Return whether a keyboard annotation action has a target range."""
+        if self.manifest is None or self.annotation_range() is None:
+            return False
+        # A loaded annotation can be edited even when the drawing toggle is
+        # currently off.  New keyboard labels/saves require the drawing mode.
+        return self.annotation_mode or bool(self.annotation_edit_id)
+
+    def select_annotation_label_shortcut(self, code: str, number: int) -> None:
+        """Select one annotation type from its numeric keyboard shortcut."""
+        if not self._annotation_shortcut_ready():
+            return
+        index = self.annotation_label_combo.findData(code)
+        if index < 0:
+            return
+        self.annotation_label_combo.setCurrentIndex(index)
+        name = ANNOTATION_LABELS.get(code, code)
+        action = "更新" if self.annotation_edit_id else "保存"
+        self.annotation_status_label.setText(
+            f"已选择 {number} · {name}；按 Enter {action}异常标注。"
+        )
+
+    def save_annotation_shortcut(self) -> None:
+        """Save the current range when Enter is pressed in annotation mode."""
+        if not self._annotation_shortcut_ready():
+            return
+        self.save_annotation()
 
     def update_annotation_edit_ui(self) -> None:
         editing = bool(self.annotation_edit_id)
