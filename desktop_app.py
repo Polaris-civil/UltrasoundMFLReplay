@@ -14,6 +14,8 @@ from collections import OrderedDict, deque
 from pathlib import Path
 from typing import Any, Optional
 
+import numpy as np
+
 from PyQt5.QtCore import (
     QSize,
     QMutex,
@@ -2044,6 +2046,11 @@ class ReplayWindow(QMainWindow):
         self.play_timer = QTimer(self)
         self.play_timer.setInterval(40)
         self.play_timer.timeout.connect(self.play_tick)
+        self._navigation_delta = 0.0
+        self.navigation_timer = QTimer(self)
+        self.navigation_timer.setSingleShot(True)
+        self.navigation_timer.setInterval(16)
+        self.navigation_timer.timeout.connect(self._flush_navigation)
         self._navigation_shortcuts: list[QShortcut] = []
         self._annotation_shortcuts: list[QShortcut] = []
 
@@ -2124,9 +2131,19 @@ class ReplayWindow(QMainWindow):
         ):
             return
         if absolute:
+            self.navigation_timer.stop()
+            self._navigation_delta = 0.0
             self.set_position(value)
         else:
-            self.move_position(value)
+            self._navigation_delta += value
+            if not self.navigation_timer.isActive():
+                self.navigation_timer.start()
+
+    def _flush_navigation(self) -> None:
+        delta = self._navigation_delta
+        self._navigation_delta = 0.0
+        if self.manifest is not None and self._stopping_worker is None:
+            self.move_position(delta)
 
     def _connect_worker(self, worker: DataWorker) -> None:
         """Connect one worker while ignoring queued signals from old data."""
@@ -5613,27 +5630,21 @@ class ReplayWindow(QMainWindow):
                     for key in ("xValue", "zValue"):
                         signal_values = segment.get(key, [])
                         stop = min(visible_stop, len(x_positions), len(signal_values))
-                        for index in range(visible_start, stop):
-                            try:
-                                value = float(signal_values[index])
-                            except (TypeError, ValueError):
-                                continue
-                            if math.isfinite(value):
-                                values.append(value)
+                        block = np.asarray(signal_values[visible_start:stop], dtype=np.float64)
+                        if np.any(np.isfinite(block)):
+                            values.append(block[np.isfinite(block)])
 
             if values:
-                lower = min(values)
-                upper = max(values)
+                array = np.concatenate(values)
+                lower = float(array.min())
+                upper = float(array.max())
                 peak = max(abs(lower), abs(upper))
-                absolute_values = sorted(abs(value) for value in values)
-                p99_index = min(
-                    len(absolute_values) - 1,
-                    int(round(0.99 * (len(absolute_values) - 1))),
-                )
-                robust_level = absolute_values[p99_index]
+                absolute_values = np.abs(array)
+                p99_index = min(len(array) - 1, int(round(0.99 * (len(array) - 1))))
+                robust_level = float(np.partition(absolute_values, p99_index)[p99_index])
                 auto_limit = max(MFL_Y_LIMIT_MIN, robust_level * 1.35)
                 limit = fixed_limit if fixed_limit is not None else auto_limit
-                clipped = sum(1 for value in values if abs(value) > limit)
+                clipped = int(np.count_nonzero(absolute_values > limit))
             else:
                 lower = 0.0
                 upper = 0.0
@@ -5669,7 +5680,6 @@ class ReplayWindow(QMainWindow):
         if buffered is not None:
             self.data = buffered
             self.fetch_pending = False
-            self.update_mfl_scale()
             self.schedule_prefetch()
         self.update_timeline()
         self.us_plot.update()
