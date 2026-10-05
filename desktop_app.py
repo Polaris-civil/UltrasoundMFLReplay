@@ -1943,7 +1943,7 @@ class ReplayWindow(QMainWindow):
         self.last_request_time = 0.0
         self.desired_x_start = 0.0
         self.view_x_start = 0.0
-        self.window_width = 8.0
+        self.window_width = 6.0
         self.speed = 5.0
         self.cursor_x: Optional[float] = None
         self.cursor_sample: Optional[dict[str, Any]] = None
@@ -2268,8 +2268,8 @@ class ReplayWindow(QMainWindow):
         first_row.addSpacing(10)
         first_row.addWidget(QLabel("窗口"))
         self.window_combo = QComboBox()
-        self.window_combo.addItems(["5 m", "8 m", "10 m", "20 m", "50 m", "100 m"])
-        self.window_combo.setCurrentText("8 m")
+        self.window_combo.addItems(["5 m", "6 m", "8 m", "10 m", "20 m", "50 m", "100 m"])
+        self.window_combo.setCurrentText("6 m")
         self.window_combo.setEnabled(False)
         first_row.addWidget(self.window_combo)
 
@@ -2424,8 +2424,8 @@ class ReplayWindow(QMainWindow):
         control_layout.addWidget(self.end_button, 1, 3)
         control_layout.addWidget(QLabel("\u7a97\u53e3"), 2, 0)
         self.window_combo = QComboBox()
-        self.window_combo.addItems(["5 m", "8 m", "10 m", "20 m", "50 m", "100 m"])
-        self.window_combo.setCurrentText("8 m")
+        self.window_combo.addItems(["5 m", "6 m", "8 m", "10 m", "20 m", "50 m", "100 m"])
+        self.window_combo.setCurrentText("6 m")
         self.window_combo.setEnabled(False)
         control_layout.addWidget(self.window_combo, 2, 1, 1, 3)
         control_layout.addWidget(QLabel("\u901f\u5ea6"), 3, 0)
@@ -4226,7 +4226,7 @@ class ReplayWindow(QMainWindow):
         try:
             self.window_width = float(text.split()[0])
         except (TypeError, ValueError):
-            self.window_width = 8.0
+            self.window_width = 6.0
         self.set_position(self.desired_x_start)
 
     def on_speed_changed(self, text: str) -> None:

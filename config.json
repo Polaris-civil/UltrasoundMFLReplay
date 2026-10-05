@@ -1,10 +1,10 @@
 {
   "dataset": "20251221",
-  "mfl_data_dir": "分发软件版本/data/20251221/漏磁",
-  "annotation_dir": "分发软件版本/annotations",
-  "model_result_path": "分发软件版本/model_results/crack_coherence_preview_v3.csv",
+  "mfl_data_dir": "portable-release/data/20251221/漏磁",
+  "annotation_dir": "portable-release/annotations",
+  "model_result_path": "portable-release/model_results/crack_coherence_preview_v3.csv",
   "model_result_segment": "EX01",
-  "ultrasound_data_dir": "分发软件版本/data/20251221/超声/data",
+  "ultrasound_data_dir": "portable-release/data/20251221/超声/data",
   "scale_mm_per_unit": 0.57462,
   "direction_sign": 1,
   "joint": {
@@ -24,7 +24,7 @@
     "EX04": 0.0
   },
   "render": {
-    "default_window_m": 8.0,
+    "default_window_m": 6.0,
     "max_mfl_points_per_segment": 3600,
     "max_ultrasound_records": 120000,
     "mfl_value_scale": 1000.0,
