@@ -1376,43 +1376,60 @@ class UltrasoundPlot(PlotCanvas):
         gates = data.get("gate", [])
         track_bands = {track: index for index, track in enumerate(tracks)}
 
-        if count and tracks:
-            # Vector markers are intentionally more expressive than the old
-            # 3 px squares.  Cap their count so a wide window remains smooth.
-            marker_size = self.owner.ultrasound_marker_size
-            us_offset_m = self.owner.us_alignment_offset_m
-            # The payload keeps the original synchronized coordinates. Apply
-            # the live calibration only while drawing so an offset change is
-            # instant and does not invalidate the read-ahead/cache buffers.
-            visible_start, visible_stop = visible_index_range(
-                xs,
-                x_start - us_offset_m,
-                x_end - us_offset_m,
-            )
-            visible_stop = min(visible_stop, count, len(xs))
-            visible_count = max(0, visible_stop - visible_start)
-            stride = max(1, math.ceil(visible_count / 12000))
-            painter.save()
-            painter.setClipRect(
-                QRectF(
-                    geometry["left"],
-                    geometry["top"],
-                    geometry["plot_width"],
-                    geometry["plot_height"],
+        marker_key = (id(self.owner.data), self.owner.view_range(),
+                      self.width(), self.height(), self.devicePixelRatioF(),
+                      tuple(tracks), tuple(self.owner.selected_gates() or []),
+                      self.owner.ultrasound_marker_size, self.owner.us_alignment_offset_m)
+        if getattr(self, "_marker_layer_key", None) != marker_key:
+            ratio = self.devicePixelRatioF()
+            layer = QPixmap(round(self.width() * ratio), round(self.height() * ratio))
+            layer.setDevicePixelRatio(ratio)
+            layer.fill(Qt.transparent)
+            marker_painter = QPainter(layer)
+            marker_painter.setRenderHint(QPainter.Antialiasing, True)
+            if count and tracks:
+                # Vector markers are intentionally more expressive than the old
+                # 3 px squares.  Cap their count so a wide window remains smooth.
+                marker_size = self.owner.ultrasound_marker_size
+                us_offset_m = self.owner.us_alignment_offset_m
+                # The payload keeps the original synchronized coordinates. Apply
+                # the live calibration only while drawing so an offset change is
+                # instant and does not invalidate the read-ahead/cache buffers.
+                visible_start, visible_stop = visible_index_range(
+                    xs,
+                    x_start - us_offset_m,
+                    x_end - us_offset_m,
                 )
-            )
-            for index in range(visible_start, visible_stop, stride):
-                track = int(data_tracks[index])
-                band_index = track_bands.get(track)
-                if band_index is None:
-                    continue
-                x = self.x_to_pixel(float(xs[index]) + us_offset_m, geometry)
-                band_top = band_top_for(band_index)
-                depth = clamp(float(depths[index]) * 176.0 / 127.0, 0.0, 176.0)
-                y = band_top + 22 + depth / DEPTH_MAX_MM * max(1.0, band_height - 34)
-                gate = int(gates[index]) if index < len(gates) else 0
-                draw_gate_marker(painter, x, y, gate, marker_size)
-            painter.restore()
+                visible_stop = min(visible_stop, count, len(xs))
+                visible_count = max(0, visible_stop - visible_start)
+                stride = max(1, math.ceil(visible_count / 12000))
+                marker_painter.save()
+                marker_painter.setClipRect(
+                    QRectF(
+                        geometry["left"],
+                        geometry["top"],
+                        geometry["plot_width"],
+                        geometry["plot_height"],
+                    )
+                )
+                for index in range(visible_start, visible_stop, stride):
+                    track = int(data_tracks[index])
+                    band_index = track_bands.get(track)
+                    if band_index is None:
+                        continue
+                    x = self.x_to_pixel(float(xs[index]) + us_offset_m, geometry)
+                    band_top = band_top_for(band_index)
+                    depth = clamp(float(depths[index]) * 176.0 / 127.0, 0.0, 176.0)
+                    y = band_top + 22 + depth / DEPTH_MAX_MM * max(1.0, band_height - 34)
+                    gate = int(gates[index]) if index < len(gates) else 0
+                    draw_gate_marker(marker_painter, x, y, gate, marker_size)
+                marker_painter.restore()
+
+            marker_painter.end()
+            self._marker_layer = layer
+            self._marker_layer_key = marker_key
+            self._marker_layer_data = self.owner.data
+        painter.drawPixmap(0, 0, self._marker_layer)
 
         if not count or not tracks:
             painter.setPen(QColor("#78909e"))
@@ -1713,39 +1730,57 @@ class MflPlot(PlotCanvas):
                 geometry["plot_height"],
             )
         )
-        for row_index, row in enumerate(rows[:row_count]):
-            top = row_top(row_index)
-            middle = top + row_height / 2.0
-            y_limit = (
-                self.owner.mfl_y_limits[row_index]
-                if row_index < len(self.owner.mfl_y_limits)
-                else MFL_Y_LIMIT_DEFAULT
-            )
-            scale = max(1.0, row_height / 2.0 - 4.0) / max(MFL_Y_LIMIT_MIN, y_limit)
-            for segment in row.get("segments", []):
-                xs = segment.get("x", [])
-                x_values = segment.get("xValue", [])
-                z_values = segment.get("zValue", [])
-                if xs:
-                    has_data = True
-                self.draw_trace(
-                    painter,
-                    geometry,
-                    xs,
-                    x_values,
-                    middle,
-                    scale,
-                    QColor(theme["trace_x"]),
+        trace_key = (id(self.owner.data), self.owner.view_range(),
+                     self.width(), self.height(), self.devicePixelRatioF(),
+                     tuple(self.owner.mfl_y_limits), self.owner.mfl_background_mode)
+        if getattr(self, "_trace_layer_key", None) != trace_key:
+            # Cache the rendering of ALL raw points, never a reduced signal.
+            ratio = self.devicePixelRatioF()
+            layer = QPixmap(round(self.width() * ratio), round(self.height() * ratio))
+            layer.setDevicePixelRatio(ratio)
+            layer.fill(Qt.transparent)
+            trace_painter = QPainter(layer)
+            trace_painter.setRenderHint(QPainter.Antialiasing, False)
+            for row_index, row in enumerate(rows[:row_count]):
+                top = row_top(row_index)
+                middle = top + row_height / 2.0
+                y_limit = (
+                    self.owner.mfl_y_limits[row_index]
+                    if row_index < len(self.owner.mfl_y_limits)
+                    else MFL_Y_LIMIT_DEFAULT
                 )
-                self.draw_trace(
-                    painter,
-                    geometry,
-                    xs,
-                    z_values,
-                    middle,
-                    scale,
-                    QColor(theme["trace_z"]),
-                )
+                scale = max(1.0, row_height / 2.0 - 4.0) / max(MFL_Y_LIMIT_MIN, y_limit)
+                for segment in row.get("segments", []):
+                    xs = segment.get("x", [])
+                    x_values = segment.get("xValue", [])
+                    z_values = segment.get("zValue", [])
+                    if xs:
+                        has_data = True
+                    self.draw_trace(
+                        trace_painter,
+                        geometry,
+                        xs,
+                        x_values,
+                        middle,
+                        scale,
+                        QColor(theme["trace_x"]),
+                    )
+                    self.draw_trace(
+                        trace_painter,
+                        geometry,
+                        xs,
+                        z_values,
+                        middle,
+                        scale,
+                        QColor(theme["trace_z"]),
+                    )
+            trace_painter.end()
+            self._trace_layer = layer
+            self._trace_layer_key = trace_key
+            self._trace_layer_data = self.owner.data
+            self._trace_layer_has_data = has_data
+        has_data = self._trace_layer_has_data
+        painter.drawPixmap(0, 0, self._trace_layer)
         painter.restore()
         self.owner.draw_annotation_selection(painter, geometry)
         self.owner.draw_annotation_dimensions(painter, geometry)
