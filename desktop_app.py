@@ -1932,7 +1932,9 @@ class MflPlot(PlotCanvas):
         painter.save()
         painter.translate(geometry["left"] - view_start * x_scale, middle)
         painter.scale(x_scale, -scale)
-        pen = QPen(color, 1.0)
+        # Cosmetic widths are device pixels: compensate for display scaling
+        # to keep a clearly visible 1.5 logical-pixel trace at every DPI.
+        pen = QPen(color, 1.5 * self.devicePixelRatioF())
         pen.setCosmetic(True)
         painter.setPen(pen)
         painter.setBrush(Qt.NoBrush)
