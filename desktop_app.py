@@ -1932,13 +1932,17 @@ class MflPlot(PlotCanvas):
         painter.save()
         painter.translate(geometry["left"] - view_start * x_scale, middle)
         painter.scale(x_scale, -scale)
-        # Cosmetic widths are device pixels: compensate for display scaling
-        # to keep a clearly visible 1.5 logical-pixel trace at every DPI.
-        pen = QPen(color, 1.5 * self.devicePixelRatioF())
+        # Qt's one-device-pixel pen has a fast raster path. Adjacent thin
+        # strokes retain visibility without the expensive wide-pen stroker.
+        ratio = self.devicePixelRatioF()
+        stroke_count = max(2, round(1.5 * ratio))
+        pen = QPen(color, 1.0)
         pen.setCosmetic(True)
         painter.setPen(pen)
         painter.setBrush(Qt.NoBrush)
-        painter.drawPath(path)
+        for stroke in range(stroke_count):
+            painter.drawPath(path)
+            painter.translate(0.0, -1.0 / (ratio * max(scale, 0.000001)))
         painter.restore()
 
 
@@ -2021,7 +2025,10 @@ class ReplayWindow(QMainWindow):
         self.pending_request_keys: set[tuple[Any, ...]] = set()
         self.prefetch_serials: set[int] = set()
         self.navigation_direction = 1
-        self.buffer_target_count = 5
+        # Keep a generous read-ahead queue so held navigation keys stay in
+        # already loaded windows instead of exposing a blank while disk I/O
+        # catches up. This trades memory for continuous playback.
+        self.buffer_target_count = 10
         self.track_boxes: dict[int, QCheckBox] = {}
         self.gate_buttons: dict[int, QToolButton] = {}
         self.update_settings_path = APP_DIR / "update_settings.json"
@@ -5242,9 +5249,11 @@ class ReplayWindow(QMainWindow):
             self.navigation_direction = 1
         elif self.desired_x_start < previous_start:
             self.navigation_direction = -1
-        self.view_x_start = self.desired_x_start
         buffered = self.find_cached_buffer()
+        if self.data is None:
+            self.view_x_start = self.desired_x_start
         if buffered is not None:
+            self.view_x_start = self.desired_x_start
             self.data = buffered
             self.fetch_pending = False
             # Keep the current scale while stepping through a prefetched
@@ -5346,7 +5355,7 @@ class ReplayWindow(QMainWindow):
     def buffer_margin_m(self) -> float:
         # For the default 8 m viewport this keeps 12 m on each side. A
         # single read therefore feeds many arrow-key steps.
-        return min(24.0, max(6.0, self.window_width * 1.5))
+        return min(48.0, max(12.0, self.window_width * 3.0))
 
     def buffer_span_m(self) -> float:
         return self.window_width + 2.0 * self.buffer_margin_m()
@@ -5442,7 +5451,7 @@ class ReplayWindow(QMainWindow):
             return
         self.window_cache[key] = payload
         self.window_cache.move_to_end(key)
-        while len(self.window_cache) > 7:
+        while len(self.window_cache) > 15:
             self.window_cache.popitem(last=False)
 
     def apply_buffer_payload(
@@ -5533,7 +5542,7 @@ class ReplayWindow(QMainWindow):
 
     def schedule_prefetch(self) -> None:
         if self.manifest and self.worker.isRunning():
-            self.prefetch_timer.start(15)
+            self.prefetch_timer.start(0)
 
     def prefetch_next_buffer(self) -> None:
         if not self.manifest or not self.worker.isRunning():
@@ -5677,9 +5686,9 @@ class ReplayWindow(QMainWindow):
             )
 
     def update_timeline_after_play(self) -> None:
-        self.view_x_start = self.desired_x_start
         buffered = self.find_cached_buffer()
         if buffered is not None:
+            self.view_x_start = self.desired_x_start
             self.data = buffered
             self.fetch_pending = False
             self.schedule_prefetch()
