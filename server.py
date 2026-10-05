@@ -145,7 +145,7 @@ def downsample_memmap_pair(
     joint_global_units: float,
     scale_m_per_unit: float,
     direction_sign: int,
-    max_points: int,
+    max_points: int | None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Downsample a DAT window without materializing the whole window twice."""
     count = max(0, int(stop) - int(start))
@@ -153,8 +153,9 @@ def downsample_memmap_pair(
         empty = np.asarray([], dtype=np.float32)
         return empty, empty, empty
 
-    max_points = max(32, int(max_points))
-    if count <= max_points:
+    if max_points is not None:
+        max_points = max(32, int(max_points))
+    if max_points is None or count <= max_points:
         positions = np.arange(start, stop, dtype=np.int64)
     else:
         bucket_count = max(1, max_points // 4)
@@ -1248,7 +1249,7 @@ class MFLDataset:
                     self.joint_global_units,
                     self.scale_m_per_unit,
                     self.direction_sign,
-                    max_points,
+                    None,  # Display every raw record; legacy point limits are ignored.
                 )
                 rows[row_index]["rawCount"] += stop - start
                 rows[row_index]["segments"].append(
@@ -1268,7 +1269,8 @@ class MFLDataset:
             "rawRecordsPerChannel": raw_records_per_channel,
             "sourceSegments": source_segments,
             "rows": rows,
-            "maxPointsPerSegment": int(max_points),
+            "maxPointsPerSegment": None,
+            "decimated": False,
         }
 
 
@@ -1819,13 +1821,13 @@ class ReplayService:
 
         mfl_path = resolve_path(
             self.config.get(
-                "mfl_data_dir", "分发软件版本/data/20251221/漏磁"
+                "mfl_data_dir", "portable-release/data/20251221/漏磁"
             ),
             config_path.parent,
         )
         us_path_value = self.config.get(
             "ultrasound_data_dir",
-            "分发软件版本/data/20251221/超声/data",
+            "portable-release/data/20251221/超声/data",
         )
         us_path = resolve_path(us_path_value, config_path.parent)
         us_csv_path_value = self.config.get("ultrasound_csv_dir")

@@ -378,7 +378,7 @@ def _prepare_dataset_selection(
                     mfl_path = candidate.resolve()
     if not _contains_mfl_data(mfl_path):
         raise ValueError(
-            "所选文件夹中没有找到漏磁 DAT 数据。请选择“分发软件版本”目录，"
+            "所选文件夹中没有找到漏磁 DAT 数据。请选择“portable-release”目录，"
             "或直接选择 data\\日期目录（例如 data\\20251221）。"
         )
 
@@ -1146,7 +1146,6 @@ class DataWorker(QThread):
                     x_end,
                     tracks=tracks,
                     gates=gates,
-                    max_mfl_points=1800,
                     max_us_records=70000,
                 )
                 self.window_ready.emit(serial, payload)
@@ -1865,10 +1864,9 @@ class MflPlot(PlotCanvas):
         visible_length = max(0, visible_stop - visible_start)
         if visible_length <= 0:
             return
-        stride = max(1, math.ceil(visible_length / 2400))
         path = QPainterPath()
         started = False
-        for index in range(visible_start, visible_stop, stride):
+        for index in range(visible_start, visible_stop):
             try:
                 x = self.x_to_pixel(float(xs[index]), geometry)
                 # Keep the fixed +/-2 row scale, but do not clamp the signal.
@@ -2820,7 +2818,7 @@ class ReplayWindow(QMainWindow):
         info_layout.setSpacing(8)
         self.choose_dataset_button = QPushButton("选择数据并加载…")
         self.choose_dataset_button.setToolTip(
-            "选择一个分发软件版本目录，或直接选择 data\\数据集名；"
+            "选择一个portable-release目录，或直接选择 data\\数据集名；"
             "当前窗口会切换到所选数据，不修改公共 config.json。"
         )
         info_layout.addWidget(self.choose_dataset_button)
