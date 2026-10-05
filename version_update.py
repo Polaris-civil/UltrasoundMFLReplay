@@ -21,7 +21,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 
 
 # Date-based release version with a numeric patch suffix for rebuilds.
-APP_VERSION = "2026.10.04"
+APP_VERSION = "2026.10.05"
 DEFAULT_GITHUB_REPOSITORY = "Polaris-civil/UltrasoundMFLReplay"
 UPDATE_ASSET_NAME = "UltrasoundMFLReplay-windows-x64.zip"
 GITHUB_API_VERSION = "2022-11-28"
