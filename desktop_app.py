@@ -1899,28 +1899,44 @@ class MflPlot(PlotCanvas):
         visible_length = max(0, visible_stop - visible_start)
         if visible_length <= 0:
             return
-        path = QPainterPath()
-        started = False
-        for index in range(visible_start, visible_stop):
-            try:
-                x = self.x_to_pixel(float(xs[index]), geometry)
-                # Keep the fixed +/-2 row scale, but do not clamp the signal.
-                # Over-range values intentionally extend beyond the row so the
-                # operator can see that an excursion occurred.
-                value = float(values[index])
-            except (TypeError, ValueError):
-                started = False
-                continue
-            y = middle - value * scale
-            if not started:
-                path.moveTo(x, y)
-                started = True
-            else:
-                path.lineTo(x, y)
-        if started:
-            painter.setPen(QPen(color, 1.0))
-            painter.setBrush(Qt.NoBrush)
-            painter.drawPath(path)
+        data = self.owner.data
+        if getattr(self, "_raw_path_data", None) is not data:
+            self._raw_path_data = data
+            self._raw_paths = {}
+        key = (id(xs), id(values))
+        path = self._raw_paths.get(key)
+        if path is None:
+            # Build once in data coordinates, preserving every buffered point.
+            path = QPainterPath()
+            started = False
+            for index in range(length):
+                try:
+                    x = float(xs[index])
+                    value = float(values[index])
+                except (TypeError, ValueError):
+                    started = False
+                    continue
+                if not math.isfinite(x) or not math.isfinite(value):
+                    started = False
+                    continue
+                if not started:
+                    path.moveTo(x, value)
+                    started = True
+                else:
+                    path.lineTo(x, value)
+            self._raw_paths[key] = path
+        view_start, view_end = self.owner.view_range()
+        x_scale = geometry["plot_width"] / max(0.000001, view_end - view_start)
+        painter.save()
+        painter.translate(geometry["left"] - view_start * x_scale, middle)
+        painter.scale(x_scale, -scale)
+        pen = QPen(color, 1.0)
+        pen.setCosmetic(True)
+        painter.setPen(pen)
+        painter.setBrush(Qt.NoBrush)
+        painter.drawPath(path)
+        painter.restore()
+
 
 
 class ReplayWindow(QMainWindow):
@@ -5212,7 +5228,10 @@ class ReplayWindow(QMainWindow):
         if buffered is not None:
             self.data = buffered
             self.fetch_pending = False
-            self.update_mfl_scale()
+            # Keep the current scale while stepping through a prefetched
+            # buffer. Recomputing P99 over every raw point on each key/wheel
+            # event causes visible navigation stalls; the scale is refreshed
+            # when a new worker payload arrives.
         self.start_spin.blockSignals(True)
         self.start_spin.setValue(self.desired_x_start)
         self.start_spin.blockSignals(False)
