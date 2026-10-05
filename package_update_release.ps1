@@ -1,6 +1,6 @@
 ﻿[CmdletBinding()]
 param(
-    [string]$SoftwareDirectory = (Join-Path $PSScriptRoot 'dist\UltrasoundMFLReplay'),
+    [string]$SoftwareDirectory = (Join-Path $PSScriptRoot '分发软件版本\软件'),
     [string]$OutputDirectory = (Join-Path $PSScriptRoot 'release-assets')
 )
 
@@ -12,7 +12,7 @@ $internalDirectory = Join-Path $SoftwareDirectory '_internal'
 $versionSource = Join-Path $PSScriptRoot 'version_update.py'
 
 if (-not (Test-Path -LiteralPath $executable -PathType Leaf)) {
-    throw "找不到程序：$executable。请先运行 build_desktop.bat 完成打包。"
+    throw "找不到程序：$executable。请先运行 build_desktop.ps1 完成打包。"
 }
 if (-not (Test-Path -LiteralPath $internalDirectory -PathType Container)) {
     throw "找不到程序依赖目录：$internalDirectory。"

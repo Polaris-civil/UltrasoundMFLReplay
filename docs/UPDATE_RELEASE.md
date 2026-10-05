@@ -5,8 +5,8 @@
 ## 发布一个版本
 
 1. 在 `version_update.py` 中把 `APP_VERSION` 改为新版本号，例如 `2026.10.01`。
-2. 在 `数据同步回放程序` 目录运行 `build_desktop.bat`。
-3. 运行 `package_update_release.ps1`。默认从 `dist/UltrasoundMFLReplay` 打包，并在 `release-assets/` 生成 `UltrasoundMFLReplay-windows-x64.zip`。
+2. 在 `数据同步回放程序` 目录运行 `build_desktop.ps1`。
+3. 运行 `package_update_release.ps1`。默认从 `??????/??` 打包，并在 `release-assets/` 生成 `UltrasoundMFLReplay-windows-x64.zip`。
 4. 在 GitHub 创建公开 Release，标签使用 `v` 加版本号，例如 `v2026.10.01`。
 5. 上传同名 ZIP 作为 Release 资产。ZIP 根目录必须直接包含 `UltrasoundMFLReplay.exe` 和 `_internal/`。
 

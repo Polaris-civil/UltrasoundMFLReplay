@@ -1,4 +1,8 @@
 """Check the data-free package from an unrelated path without Python in PATH."""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 import json
 import os
 from pathlib import Path
@@ -6,18 +10,18 @@ import shutil
 import subprocess
 import tempfile
 
-ROOT=Path(__file__).resolve().parent
+ROOT=Path(__file__).resolve().parents[1]
 package=ROOT/'outputs/portable-test-package'
 package.parent.mkdir(parents=True,exist_ok=True)
 if not package.exists():
-    shutil.copytree(ROOT/'dist/UltrasoundMFLReplay',package)
+    shutil.copytree(ROOT/'分发软件版本/软件',package)
 for config_path in [package/'config.json',package/'_internal/config.json']:
     if config_path.exists():
         settings=json.loads(config_path.read_text(encoding='utf-8'))
         settings.update(mfl_data_dir='data/mfl',ultrasound_data_dir='data/ultrasound',ultrasound_csv_dir='data/csv',annotation_dir='annotations',model_result_path='')
         config_path.write_text(json.dumps(settings),encoding='utf-8')
 assert (package/'UltrasoundMFLReplay.exe').is_file()
-for config in [package/'config.json',package/'_internal/config.json']:
+for config in [package/'config.json']:
     c=json.loads(config.read_text(encoding='utf-8'))
     assert not c['model_result_path']
     assert all(not Path(c[k]).is_absolute() for k in ['mfl_data_dir','ultrasound_data_dir','ultrasound_csv_dir','annotation_dir'])
