@@ -4,7 +4,7 @@ build/
 dist/
 archive/
 outputs/
-分发软件版本/
+portable-release/
 release-assets/
 update_settings.json
 .venv/

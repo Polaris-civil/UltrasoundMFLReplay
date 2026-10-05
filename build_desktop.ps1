@@ -2,7 +2,7 @@
 param()
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
-$software = Join-Path $PSScriptRoot '分发软件版本\软件'
+$software = Join-Path $PSScriptRoot 'portable-release\软件'
 $stage = Join-Path $PSScriptRoot 'build\staging'
 python -m PyInstaller --noconfirm --clean --onedir --windowed --name UltrasoundMFLReplay --distpath $stage --add-data 'assets;assets' desktop_app.py
 if ($LASTEXITCODE -ne 0) { throw '程序打包失败；正式分发程序未替换。' }
@@ -22,4 +22,4 @@ Copy-Item -LiteralPath (Join-Path $stage 'UltrasoundMFLReplay\_internal') -Desti
 Copy-Item -LiteralPath (Join-Path $stage 'UltrasoundMFLReplay\UltrasoundMFLReplay.exe') -Destination $software -Force
 Remove-Item -LiteralPath $stage -Recurse -Force
 Write-Host "完成：$software\UltrasoundMFLReplay.exe"
-Write-Host '直接拷走整个分发软件版本目录即可；已有配置、数据及标注已保留。'
+Write-Host '直接拷走整个portable-release目录即可；已有配置、数据及标注已保留。'

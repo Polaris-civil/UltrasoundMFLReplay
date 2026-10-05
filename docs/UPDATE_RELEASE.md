@@ -21,6 +21,6 @@ UltrasoundMFLReplay.exe
 _internal/
 ```
 
-不要将 `config.json`、`update_settings.json`、`data/`、`annotations/`、模型结果、整个“分发软件版本”目录放进更新 ZIP。更新器会在程序退出后替换 EXE 和 `_internal`，保留用户本机的配置与数据；下载的资产会校验 GitHub 提供的 SHA-256（Release API 提供时），并检查 ZIP 路径和目录结构。
+不要将 `config.json`、`update_settings.json`、`data/`、`annotations/`、模型结果、整个“portable-release”目录放进更新 ZIP。更新器会在程序退出后替换 EXE 和 `_internal`，保留用户本机的配置与数据；下载的资产会校验 GitHub 提供的 SHA-256（Release API 提供时），并检查 ZIP 路径和目录结构。
 
 更新器设置保存在 EXE 旁边的 `update_settings.json`。安装目录应允许当前用户写入；不要将便携版放在需要管理员权限的 `Program Files` 下。

@@ -14,7 +14,7 @@ ROOT=Path(__file__).resolve().parents[1]
 package=ROOT/'outputs/portable-test-package'
 package.parent.mkdir(parents=True,exist_ok=True)
 if not package.exists():
-    shutil.copytree(ROOT/'分发软件版本/软件',package)
+    shutil.copytree(ROOT/'portable-release/软件',package)
 for config_path in [package/'config.json',package/'_internal/config.json']:
     if config_path.exists():
         settings=json.loads(config_path.read_text(encoding='utf-8'))

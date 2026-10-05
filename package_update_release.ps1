@@ -1,6 +1,6 @@
 ﻿[CmdletBinding()]
 param(
-    [string]$SoftwareDirectory = (Join-Path $PSScriptRoot '分发软件版本\软件'),
+    [string]$SoftwareDirectory = (Join-Path $PSScriptRoot 'portable-release\软件'),
     [string]$OutputDirectory = (Join-Path $PSScriptRoot 'release-assets')
 )
 
